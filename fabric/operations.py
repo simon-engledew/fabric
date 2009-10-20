@@ -454,7 +454,7 @@ def _execute_remotely(command, sudo=False, shell=True, pty=False, user=None):
     """
 
 
-def _run_command(command, shell=True, pty=False, sudo=False, user=None):
+def _run_command(command, shell=True, pty=False, sudo=False, user=None, stdinput=None):
     """
     Underpinnings of `run` and `sudo`. See their docstrings for more info.
     """
@@ -476,6 +476,11 @@ def _run_command(command, shell=True, pty=False, sudo=False, user=None):
     if pty:
         channel.get_pty()
     channel.exec_command(wrapped_command)
+
+    if stdinput:
+        channel.sendall(stdinput)
+        channel.shutdown_write()
+
     capture_stdout = []
     capture_stderr = []
 
@@ -516,7 +521,7 @@ def _run_command(command, shell=True, pty=False, sudo=False, user=None):
 
 
 @needs_host
-def run(command, shell=True, pty=False):
+def run(command, shell=True, pty=False, stdinput=None):
     """
     Run a shell command on a remote host.
 
@@ -534,6 +539,10 @@ def run(command, shell=True, pty=False):
     Standard error will also be attached, as a string, to this return value as
     the ``stderr`` attribute.
 
+    If you need to send data to the remote program's standard in, pass ``stdinput``.
+    This string will be written to stdin and then the stream will be flushed and
+    shut down
+
     You may pass ``pty=True`` to force allocation of a pseudo tty on
     the remote end. This is not normally required, but some programs may
     complain (or, even more rarely, refuse to run) if a tty is not present.
@@ -545,11 +554,11 @@ def run(command, shell=True, pty=False):
         output = run('ls /var/www/site1')
     
     """
-    return _run_command(command, shell, pty)
+    return _run_command(command, shell, pty, stdinput=stdinput)
 
 
 @needs_host
-def sudo(command, shell=True, pty=False, user=None):
+def sudo(command, shell=True, pty=False, user=None, stdinput=None):
     """
     Run a shell command on a remote host, with superuser privileges.
 
@@ -570,7 +579,7 @@ def sudo(command, shell=True, pty=False, user=None):
         result = sudo("ls /tmp/")
     
     """
-    return _run_command(command, shell, pty, sudo=True, user=user) 
+    return _run_command(command, shell, pty, sudo=True, user=user, stdinput=stdinput)
 
 
 def local(command, capture=True):
